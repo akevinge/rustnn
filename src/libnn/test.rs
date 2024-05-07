@@ -4,7 +4,7 @@ use super::*;
 
 #[test]
 fn test_forward_pass() {
-    let network = network::Network {
+    let network = simple_nn::Network {
         inputs: 2,
         hiddens: 2,
         outputs: 1,

@@ -5,7 +5,7 @@ use anyhow::Result;
 use console::{style, Emoji};
 use indicatif::ProgressBar;
 use libnn::loader::MnistDataLoader;
-use libnn::network;
+use libnn::simple_nn;
 use libnn::MNIST_TRAINING_DATA_PATHS;
 
 static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍 ", "");
@@ -30,10 +30,10 @@ fn main() -> Result<()> {
 
     let (x_train, y_train) = mnist_data_loader.get_training_data();
 
-    let mut basic_nn = network::Network::new(28 * 28, 300, 10, 0.1);
+    let mut simple_nn = simple_nn::Network::new(28 * 28, 300, 10, 0.1);
 
     println!(
-        "{} {}Training basic neural network...",
+        "{} {}Training simple neural network...",
         style("[2/3]").bold(),
         TRAINING
     );
@@ -49,7 +49,7 @@ fn main() -> Result<()> {
         target[*y as usize] = 0.999;
 
         // Train the network.
-        basic_nn.train(input, target);
+        simple_nn.train(input, target);
 
         // Increment progress bar.
         pb.inc(1);
@@ -57,11 +57,11 @@ fn main() -> Result<()> {
     pb.finish_and_clear();
 
     println!(
-        "{} {}Saving basic neural network...",
+        "{} {}Saving simple neural network...",
         style("[3/3]").bold(),
         SAVING
     );
-    basic_nn.save("data/basic_nn.model")?;
+    simple_nn.save("data/simple_nn.model")?;
 
     Ok(())
 }

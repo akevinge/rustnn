@@ -6,7 +6,7 @@ use console::style;
 use console::Emoji;
 use indicatif::ProgressBar;
 use libnn::loader::MnistDataLoader;
-use libnn::network;
+use libnn::simple_nn;
 use libnn::MNIST_TRAINING_DATA_PATHS;
 
 static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍 ", "");
@@ -29,11 +29,11 @@ fn main() -> Result<()> {
     mnist_data_loader.load()?;
 
     println!(
-        "{} {}Loading basic neural network...",
+        "{} {}Loading simple neural network...",
         style("[2/3]").bold(),
         LOOKING_GLASS
     );
-    let basic_nn = network::Network::load("data/basic_nn.model")?;
+    let simple_nn = simple_nn::Network::load("data/simple_nn.model")?;
 
     let (x_test, y_test) = mnist_data_loader.get_test_data();
 
@@ -45,7 +45,7 @@ fn main() -> Result<()> {
     let pb = ProgressBar::new(x_test.len() as u64);
     let mut correct = 0;
     for (x, y) in zip(x_test, y_test) {
-        let y_pred = basic_nn.predict(x.clone());
+        let y_pred = simple_nn.predict(x.clone());
         if y_pred as f64 == *y {
             correct += 1;
         }
