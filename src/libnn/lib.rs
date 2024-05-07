@@ -1,4 +1,4 @@
-pub mod loader;
+pub mod mnist_loader;
 pub mod simple_nn;
 
 pub const MNIST_TRAINING_DATA_PATHS: [&str; 4] = [

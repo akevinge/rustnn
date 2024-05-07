@@ -5,7 +5,7 @@ use anyhow::Result;
 use console::style;
 use console::Emoji;
 use indicatif::ProgressBar;
-use libnn::loader::MnistDataLoader;
+use libnn::mnist_loader::MnistDataLoader;
 use libnn::simple_nn;
 use libnn::MNIST_TRAINING_DATA_PATHS;
 
