@@ -1,21 +1,3 @@
-//
-///////////
-///
-///
-///
-///
-///
-///
-///
-///
-///
-///
-///
-///
-///
-// https://github.com/JonathanWoollett-Light/cogent/blob/master/src/layer.rs
-//https://github.com/JonathanWoollett-Light/cogent/blob/master/src/neural_network.rs#L753
-//https://chat.openai.com/share/e6fe503e-bfcf-4900-9f41-ce195e899a32
 use std::iter::zip;
 
 use anyhow::Result;
@@ -52,7 +34,7 @@ impl DenseLayer {
         let z = self.w.dot(input) + &self.b;
 
         // a = σ(z)
-        let a = z.mapv(|x| self.activation.activate(x));
+        let a = self.activation.activate(&z);
 
         (a, z)
     }
@@ -78,7 +60,7 @@ impl DenseLayer {
         learning_rate: f64,
     ) -> Array2<f64> {
         // δ = ∂C/∂a * σ'(z)
-        let activation_prime = z.mapv(|x| self.activation.prime(x));
+        let activation_prime = self.activation.prime(z);
         let error = partial_cost * activation_prime;
 
         // ∂C/∂a^{l-1} = W^T * δ

@@ -20,9 +20,9 @@ static CRYSTAL_BALL: Emoji<'_, '_> = Emoji("🔮 ", "");
 #[show_image::main]
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() < 4 {
+    if args.len() < 5 {
         println!(
-            "Usage: {} <simple|deep> <train|predict> <sample_count>",
+            "Usage: {} <simple|deep> <train|predict> <sample_count> <model_file>",
             args[0]
         );
         return Ok(());
@@ -34,15 +34,16 @@ fn main() -> Result<()> {
         let arg = args[3].as_str();
         arg.parse::<usize>().unwrap_or(0)
     };
+    let model_file = args[4].as_str();
     match cmd {
         "simple" => match subcmd {
-            "train" => simple_nn_train(sample_count)?,
-            "predict" => simple_nn_predict(sample_count)?,
+            "train" => simple_nn_train(sample_count, model_file)?,
+            "predict" => simple_nn_predict(sample_count, model_file)?,
             _ => println!("Invalid command."),
         },
         "deep" => match subcmd {
-            "train" => deep_nn_train(sample_count)?,
-            "predict" => deep_nn_predict(sample_count)?,
+            "train" => deep_nn_train(sample_count, model_file)?,
+            "predict" => deep_nn_predict(sample_count, model_file)?,
             _ => println!("Invalid command."),
         },
         _ => println!("Invalid command."),
@@ -51,22 +52,10 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn deep_nn_train(sample_count: usize) -> Result<()> {
-    println!(
-        "{} {}Loading MNIST dataset...",
-        style("[1/3]").bold(),
-        LOOKING_GLASS
-    );
-    let mut mnist_data_loader = MnistDataLoader::new(
-        MNIST_TRAINING_DATA_PATHS[0],
-        MNIST_TRAINING_DATA_PATHS[1],
-        MNIST_TRAINING_DATA_PATHS[2],
-        MNIST_TRAINING_DATA_PATHS[3],
-        false,
-    );
-    mnist_data_loader.load()?;
+fn deep_nn_train(sample_count: usize, model_file: &str) -> Result<()> {
+    let mnist = load_mnist()?;
 
-    let (x_train, y_train) = mnist_data_loader.get_training_data();
+    let (x_train, y_train) = mnist.get_training_data();
 
     let sample_count = cmp::min(sample_count, x_train.len());
     if sample_count > x_train.len() {
@@ -85,15 +74,23 @@ fn deep_nn_train(sample_count: usize) -> Result<()> {
     );
     let pb = ProgressBar::new(sample_count as u64);
 
+    // NN1: 92% (5k samples)
+    //  - 28x28, 300; Sigmoid
+    //  - 300, 10; Sigmoid
+    //  - 0.1; CrossEntropy
+    // NN2: 78% (5k samples)
+    //  - 28x28, 300; Sigmoid
+    //  - 300, 100; Sigmoid
+    //  - 0.1; Quadratic
     let mut deep_nn = deep_nn::DeepNeuralNetwork::new(
         28 * 28,
         vec![
-            DenseLayer::new(28 * 28, 500, Activation::Sigmoid),
-            DenseLayer::new(500, 300, Activation::Sigmoid),
+            DenseLayer::new(28 * 28, 300, Activation::Sigmoid),
+            DenseLayer::new(300, 300, Activation::Sigmoid),
             DenseLayer::new(300, 10, Activation::Sigmoid),
         ],
         0.1,
-        Cost::Quadratic,
+        Cost::CrossEntropy,
     );
 
     for (x, y) in zip(x_train, y_train).take(sample_count) {
@@ -116,25 +113,13 @@ fn deep_nn_train(sample_count: usize) -> Result<()> {
         style("[3/3]").bold(),
         SAVING
     );
-    deep_nn.save("data/deep_nn.model")?;
+    deep_nn.save(model_file)?;
 
     Ok(())
 }
 
-fn deep_nn_predict(sample_count: usize) -> Result<()> {
-    println!(
-        "{} {}Loading MNIST dataset...",
-        style("[1/3]").bold(),
-        LOOKING_GLASS
-    );
-    let mut mnist_data_loader = MnistDataLoader::new(
-        MNIST_TRAINING_DATA_PATHS[0],
-        MNIST_TRAINING_DATA_PATHS[1],
-        MNIST_TRAINING_DATA_PATHS[2],
-        MNIST_TRAINING_DATA_PATHS[3],
-        false,
-    );
-    mnist_data_loader.load()?;
+fn deep_nn_predict(sample_count: usize, model_file: &str) -> Result<()> {
+    let mnist = load_mnist()?;
 
     println!(
         "{} {}Loading deep neural network...",
@@ -142,9 +127,9 @@ fn deep_nn_predict(sample_count: usize) -> Result<()> {
         LOOKING_GLASS
     );
 
-    let deep_nn = deep_nn::DeepNeuralNetwork::load("data/deep_nn.model")?;
+    let deep_nn = deep_nn::DeepNeuralNetwork::load(model_file)?;
 
-    let (x_test, y_test) = mnist_data_loader.get_test_data();
+    let (x_test, y_test) = mnist.get_test_data();
 
     let sample_count = cmp::min(sample_count, x_test.len());
     if sample_count > x_test.len() {
@@ -179,22 +164,10 @@ fn deep_nn_predict(sample_count: usize) -> Result<()> {
     Ok(())
 }
 
-fn simple_nn_train(sample_count: usize) -> Result<()> {
-    println!(
-        "{} {}Loading MNIST dataset...",
-        style("[1/3]").bold(),
-        LOOKING_GLASS
-    );
-    let mut mnist_data_loader = MnistDataLoader::new(
-        MNIST_TRAINING_DATA_PATHS[0],
-        MNIST_TRAINING_DATA_PATHS[1],
-        MNIST_TRAINING_DATA_PATHS[2],
-        MNIST_TRAINING_DATA_PATHS[3],
-        false,
-    );
-    mnist_data_loader.load()?;
+fn simple_nn_train(sample_count: usize, model_file: &str) -> Result<()> {
+    let mnist = load_mnist()?;
 
-    let (x_train, y_train) = mnist_data_loader.get_training_data();
+    let (x_train, y_train) = mnist.get_training_data();
 
     let sample_count = cmp::min(sample_count, x_train.len());
     if sample_count > x_train.len() {
@@ -236,34 +209,22 @@ fn simple_nn_train(sample_count: usize) -> Result<()> {
         style("[3/3]").bold(),
         SAVING
     );
-    simple_nn.save("data/simple_nn.model")?;
+    simple_nn.save(model_file)?;
 
     Ok(())
 }
 
-fn simple_nn_predict(sample_count: usize) -> Result<()> {
-    println!(
-        "{} {}Loading MNIST dataset...",
-        style("[1/3]").bold(),
-        LOOKING_GLASS
-    );
-    let mut mnist_data_loader = MnistDataLoader::new(
-        MNIST_TRAINING_DATA_PATHS[0],
-        MNIST_TRAINING_DATA_PATHS[1],
-        MNIST_TRAINING_DATA_PATHS[2],
-        MNIST_TRAINING_DATA_PATHS[3],
-        false,
-    );
-    mnist_data_loader.load()?;
+fn simple_nn_predict(sample_count: usize, model_file: &str) -> Result<()> {
+    let mnist = load_mnist()?;
 
     println!(
         "{} {}Loading simple neural network...",
         style("[2/3]").bold(),
         LOOKING_GLASS
     );
-    let simple_nn = simple_nn::Network::load("data/simple_nn.model")?;
+    let simple_nn = simple_nn::Network::load(model_file)?;
 
-    let (x_test, y_test) = mnist_data_loader.get_test_data();
+    let (x_test, y_test) = mnist.get_test_data();
     let sample_count = cmp::min(sample_count, x_test.len());
     if sample_count > x_test.len() {
         println!(
@@ -293,4 +254,22 @@ fn simple_nn_predict(sample_count: usize) -> Result<()> {
     println!("Predictions finished with accuracy {:.2}%.", accuracy);
 
     Ok(())
+}
+
+fn load_mnist() -> Result<MnistDataLoader> {
+    println!(
+        "{} {}Loading MNIST dataset...",
+        style("[1/3]").bold(),
+        LOOKING_GLASS
+    );
+    let mut mnist_data_loader = MnistDataLoader::new(
+        MNIST_TRAINING_DATA_PATHS[0],
+        MNIST_TRAINING_DATA_PATHS[1],
+        MNIST_TRAINING_DATA_PATHS[2],
+        MNIST_TRAINING_DATA_PATHS[3],
+        false,
+    );
+    mnist_data_loader.load()?;
+
+    Ok(mnist_data_loader)
 }
