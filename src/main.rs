@@ -1,10 +1,11 @@
+use std::cmp;
 use std::iter::zip;
 
 use anyhow::Result;
 
 use console::{style, Emoji};
 use indicatif::ProgressBar;
-use libnn::deep_nn::{DenseLayer, QuadraticCost};
+use libnn::deep_nn::{Activation, Cost, DenseLayer};
 use libnn::mnist_loader::MnistDataLoader;
 use libnn::MNIST_TRAINING_DATA_PATHS;
 use libnn::{deep_nn, simple_nn};
@@ -17,22 +18,29 @@ static CRYSTAL_BALL: Emoji<'_, '_> = Emoji("🔮 ", "");
 #[show_image::main]
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() < 3 {
-        println!("Usage: {} <simple|deep> <train|predict>", args[0]);
+    if args.len() < 4 {
+        println!(
+            "Usage: {} <simple|deep> <train|predict> <sample_count>",
+            args[0]
+        );
         return Ok(());
     }
 
     let cmd = args[1].as_str();
     let subcmd = args[2].as_str();
+    let sample_count = {
+        let arg = args[3].as_str();
+        arg.parse::<usize>().unwrap_or(0)
+    };
     match cmd {
         "simple" => match subcmd {
-            "train" => simple_nn_train()?,
-            "predict" => simple_nn_predict()?,
+            "train" => simple_nn_train(sample_count)?,
+            "predict" => simple_nn_predict(sample_count)?,
             _ => println!("Invalid command."),
         },
         "deep" => match subcmd {
-            "train" => deep_nn_train()?,
-            "predict" => deep_nn_predict()?,
+            "train" => deep_nn_train(sample_count)?,
+            "predict" => deep_nn_predict(sample_count)?,
             _ => println!("Invalid command."),
         },
         _ => println!("Invalid command."),
@@ -41,7 +49,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn deep_nn_train() -> Result<()> {
+fn deep_nn_train(sample_count: usize) -> Result<()> {
     println!(
         "{} {}Loading MNIST dataset...",
         style("[1/3]").bold(),
@@ -58,23 +66,37 @@ fn deep_nn_train() -> Result<()> {
 
     let (x_train, y_train) = mnist_data_loader.get_training_data();
 
+    let sample_count = cmp::min(sample_count, x_train.len());
+    if sample_count > x_train.len() {
+        println!(
+            "Sample count ({}) exceeds training data size ({}). Using all training data.",
+            sample_count,
+            x_train.len()
+        );
+    }
+
     println!(
-        "{} {}Training deep neural network...",
+        "{} {}Training deep neural network on {} samples...",
         style("[2/3]").bold(),
-        TRAINING
+        TRAINING,
+        sample_count,
     );
-    let pb = ProgressBar::new(x_train.len() as u64);
+    let pb = ProgressBar::new(sample_count as u64);
 
     let mut deep_nn = deep_nn::DeepNeuralNetwork::new(
         28 * 28,
-        vec![DenseLayer::new(28 * 28, 300), DenseLayer::new(300, 10)],
+        vec![
+            DenseLayer::new(28 * 28, 500, Activation::Sigmoid),
+            DenseLayer::new(500, 300, Activation::Sigmoid),
+            DenseLayer::new(300, 10, Activation::Sigmoid),
+        ],
         0.1,
-        Box::new(QuadraticCost),
+        Cost::Quadratic,
     );
 
-    for (x, y) in zip(x_train, y_train) {
+    for (x, y) in zip(x_train, y_train).take(sample_count) {
         // Normalize input data.
-        let input = (x / 255.0 * 0.99) + 0.01;
+        let input = (x / 255.0 * 0.999) + 0.001;
 
         // Create target vector.
         let mut target = vec![0.001; 10];
@@ -87,14 +109,75 @@ fn deep_nn_train() -> Result<()> {
     }
     pb.finish_and_clear();
 
+    println!(
+        "{} {}Saving deep neural network...",
+        style("[3/3]").bold(),
+        SAVING
+    );
+    deep_nn.save("data/deep_nn.model")?;
+
     Ok(())
 }
 
-fn deep_nn_predict() -> Result<()> {
+fn deep_nn_predict(sample_count: usize) -> Result<()> {
+    println!(
+        "{} {}Loading MNIST dataset...",
+        style("[1/3]").bold(),
+        LOOKING_GLASS
+    );
+    let mut mnist_data_loader = MnistDataLoader::new(
+        MNIST_TRAINING_DATA_PATHS[0],
+        MNIST_TRAINING_DATA_PATHS[1],
+        MNIST_TRAINING_DATA_PATHS[2],
+        MNIST_TRAINING_DATA_PATHS[3],
+        false,
+    );
+    mnist_data_loader.load()?;
+
+    println!(
+        "{} {}Loading deep neural network...",
+        style("[2/3]").bold(),
+        LOOKING_GLASS
+    );
+
+    let deep_nn = deep_nn::DeepNeuralNetwork::load("data/deep_nn.model")?;
+
+    let (x_test, y_test) = mnist_data_loader.get_test_data();
+
+    let sample_count = cmp::min(sample_count, x_test.len());
+    if sample_count > x_test.len() {
+        println!(
+            "Sample count ({}) exceeds test data size ({}). Using all test data.",
+            sample_count,
+            x_test.len()
+        );
+    }
+
+    println!(
+        "{} {}Predicting from {} test samples...",
+        style("[3/3]").bold(),
+        CRYSTAL_BALL,
+        sample_count
+    );
+
+    let pb = ProgressBar::new(sample_count as u64);
+    let mut correct = 0;
+    for (x, y) in zip(x_test, y_test).take(sample_count) {
+        let y_pred = deep_nn.predict(&x);
+        if y_pred as f64 == *y {
+            correct += 1;
+        }
+        pb.inc(1);
+    }
+    pb.finish_and_clear();
+
+    let accuracy = (correct as f64 / sample_count as f64) * 100.0;
+    println!("Predictions finished with accuracy {:.2}%.", accuracy);
+
     Ok(())
 }
 
-fn simple_nn_train() -> Result<()> {
+fn simple_nn_train(sample_count: usize) -> Result<()> {
     println!(
         "{} {}Loading MNIST dataset...",
         style("[1/3]").bold(),
@@ -111,6 +194,15 @@ fn simple_nn_train() -> Result<()> {
 
     let (x_train, y_train) = mnist_data_loader.get_training_data();
 
+    let sample_count = cmp::min(sample_count, x_train.len());
+    if sample_count > x_train.len() {
+        println!(
+            "Sample count ({}) exceeds training data size ({}). Using all training data.",
+            sample_count,
+            x_train.len()
+        );
+    }
+
     let mut simple_nn = simple_nn::Network::new(28 * 28, 300, 10, 0.1);
 
     println!(
@@ -121,7 +213,7 @@ fn simple_nn_train() -> Result<()> {
     let pb = ProgressBar::new(x_train.len() as u64);
 
     let target = vec![0.001; 10];
-    for (x, y) in zip(x_train, y_train) {
+    for (x, y) in zip(x_train, y_train).take(sample_count) {
         // Normalize input data.
         let input = (x / 255.0 * 0.99) + 0.01;
 
@@ -147,7 +239,7 @@ fn simple_nn_train() -> Result<()> {
     Ok(())
 }
 
-fn simple_nn_predict() -> Result<()> {
+fn simple_nn_predict(sample_count: usize) -> Result<()> {
     println!(
         "{} {}Loading MNIST dataset...",
         style("[1/3]").bold(),
@@ -170,6 +262,14 @@ fn simple_nn_predict() -> Result<()> {
     let simple_nn = simple_nn::Network::load("data/simple_nn.model")?;
 
     let (x_test, y_test) = mnist_data_loader.get_test_data();
+    let sample_count = cmp::min(sample_count, x_test.len());
+    if sample_count > x_test.len() {
+        println!(
+            "Sample count ({}) exceeds test data size ({}). Using all test data.",
+            sample_count,
+            x_test.len()
+        );
+    }
 
     println!(
         "{} {}Predicting test data...",
@@ -178,7 +278,7 @@ fn simple_nn_predict() -> Result<()> {
     );
     let pb = ProgressBar::new(x_test.len() as u64);
     let mut correct = 0;
-    for (x, y) in zip(x_test, y_test) {
+    for (x, y) in zip(x_test, y_test).take(sample_count) {
         let y_pred = simple_nn.predict(x.clone());
         if y_pred as f64 == *y {
             correct += 1;
@@ -187,7 +287,7 @@ fn simple_nn_predict() -> Result<()> {
     }
     pb.finish_and_clear();
 
-    let accuracy = (correct as f64 / y_test.len() as f64) * 100.0;
+    let accuracy = (correct as f64 / sample_count as f64) * 100.0;
     println!("Predictions finished with accuracy {:.2}%.", accuracy);
 
     Ok(())

@@ -1,3 +1,4 @@
+pub mod deep_nn;
 pub mod mnist_loader;
 pub mod simple_nn;
 

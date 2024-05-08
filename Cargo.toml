@@ -3,14 +3,14 @@ name = "neural-nets-from-scratch"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "simple_train"
-path = "src/simple_nn/train.rs"
+# [[bin]]
+# name = "simple_train"
+# path = "src/simple_nn/train.rs"
 
 
-[[bin]]
-name = "simple_predict"
-path = "src/simple_nn/predict.rs"
+# [[bin]]
+# name = "simple_predict"
+# path = "src/simple_nn/predict.rs"
 
 [lib]
 name = "libnn"
