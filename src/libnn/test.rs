@@ -1,6 +1,6 @@
 use ndarray::array;
 
-use crate::deep_nn::{Activation, Cost};
+use crate::{activation::Activation, cost::Cost};
 
 use self::deep_nn::DenseLayer;
 

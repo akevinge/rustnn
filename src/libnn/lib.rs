@@ -1,3 +1,5 @@
+pub mod activation;
+pub mod cost;
 pub mod deep_nn;
 pub mod mnist_loader;
 pub mod simple_nn;
