@@ -7,7 +7,7 @@ use console::{style, Emoji};
 use indicatif::ProgressBar;
 use libnn::activation::Activation;
 use libnn::cost::Cost;
-use libnn::deep_nn::DenseLayer;
+use libnn::layer::DenseLayer;
 use libnn::mnist_loader::MnistDataLoader;
 use libnn::MNIST_TRAINING_DATA_PATHS;
 use libnn::{deep_nn, simple_nn};

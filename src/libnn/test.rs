@@ -2,7 +2,7 @@ use ndarray::array;
 
 use crate::{activation::Activation, cost::Cost};
 
-use self::deep_nn::DenseLayer;
+use self::layer::DenseLayer;
 
 use super::*;
 
