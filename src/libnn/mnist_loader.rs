@@ -169,7 +169,7 @@ impl MnistDataLoader {
         if self.show_images {
             let mut rng = rand::thread_rng();
             for _ in 0..5 {
-                let random_index = rng.gen_range(0..raw_images.len() as usize);
+                let random_index = rng.gen_range(0..raw_images.len());
                 show_image(&raw_images[random_index])?;
                 println!("Label: {}", raw_labels[random_index]);
             }
@@ -207,7 +207,7 @@ pub fn show_image(raw_image: &Array3<u8>) -> Result<()> {
         image::Rgb([pixel, pixel, pixel])
     });
 
-    let image_view = ImageView::new(ImageInfo::rgb8(28, 28), &rgb_image.as_raw());
+    let image_view = ImageView::new(ImageInfo::rgb8(28, 28), rgb_image.as_raw());
     let window = create_window("image", Default::default())?;
     window.set_image("image-001", image_view)?;
 

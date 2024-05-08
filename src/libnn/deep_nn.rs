@@ -95,7 +95,7 @@ impl DeepNeuralNetwork {
     pub fn backpropagate(
         &mut self,
         target: &Array2<f64>,
-        layer_output: &mut Vec<(Array2<f64>, Option<Array2<f64>>)>,
+        layer_output: &mut [(Array2<f64>, Option<Array2<f64>>)],
     ) {
         let mut layer_output_iter = layer_output.iter_mut().rev();
         let last_activation = &layer_output_iter.next().unwrap().0;

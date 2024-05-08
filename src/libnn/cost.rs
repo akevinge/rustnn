@@ -26,7 +26,7 @@ impl Cost {
             Cost::Quadratic => output - target,
             Cost::CrossEntropy => {
                 // -y/a + (1-y)/(1-a)
-                return (-target / output) + (1.0 - target) / (1.0 - output);
+                (-target / output) + (1.0 - target) / (1.0 - output)
             }
         }
     }
