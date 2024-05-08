@@ -1,7 +1,7 @@
 use std::iter::zip;
 
 use anyhow::Result;
-use ndarray::Array2;
+use ndarray::{Array2, Array3};
 use serde::{Deserialize, Serialize};
 
 use crate::{cost::Cost, layer::DenseLayer};
@@ -24,7 +24,7 @@ impl DeepNeuralNetwork {
         }
     }
 
-    pub fn predict(&self, input_data: &Array2<f64>) -> usize {
+    pub fn predict(&self, input_data: &Array3<f64>) -> usize {
         let input = input_data
             .to_shape((input_data.len(), 1))
             .unwrap()
@@ -49,7 +49,7 @@ impl DeepNeuralNetwork {
         }
     }
 
-    pub fn train(&mut self, input_data: &Array2<f64>, target: &Vec<f64>) {
+    pub fn train(&mut self, input_data: &Array3<f64>, target: &Vec<f64>) {
         let input = input_data
             .to_shape((input_data.len(), 1))
             .unwrap()

@@ -1,11 +1,10 @@
 use std::{
     fs::File,
     io::{BufReader, Read, Seek},
-    iter,
 };
 
 use anyhow::Result;
-use ndarray::Array2;
+use ndarray::Array3;
 use rand::Rng;
 use show_image::{create_window, ImageInfo, ImageView};
 
@@ -14,9 +13,9 @@ use show_image::{create_window, ImageInfo, ImageView};
 pub struct MnistDataLoader {
     show_images: bool,
 
-    x_train: Vec<Array2<f64>>,
+    x_train: Vec<Array3<f64>>,
     y_train: Vec<f64>,
-    x_test: Vec<Array2<f64>>,
+    x_test: Vec<Array3<f64>>,
     y_test: Vec<f64>,
 
     training_data_path: String,
@@ -54,7 +53,7 @@ impl MnistDataLoader {
         &self,
         image_path: &str,
         label_path: &str,
-    ) -> Result<(Vec<Array2<f64>>, Vec<f64>)> {
+    ) -> Result<(Vec<Array3<f64>>, Vec<f64>)> {
         const LABEL_MAGIC_NUMBER: u32 = 2049;
         const IMAGE_MAGIC_NUMBER: u32 = 2051;
 
@@ -146,18 +145,17 @@ impl MnistDataLoader {
             ));
         }
 
-        // Reshape image data into 28x28 images.
-        let mut i: usize = 0;
-        let raw_images: Vec<Array2<u8>> = iter::repeat_with(|| unsafe {
-            let reshaped_image = Array2::from_shape_vec_unchecked(
-                (28, 28),
-                Vec::from(&image_data[i * rows * cols..(i + 1) * rows * cols]),
-            );
-            i += 1;
-            reshaped_image
-        })
-        .take(image_dataset_size as usize)
-        .collect();
+        // Reshape image data into 28x28x1 images.
+        let mut raw_images = Vec::with_capacity(image_dataset_size as usize);
+        for i in 0..image_dataset_size as usize {
+            let mut image = Array3::<u8>::zeros((rows, cols, 1));
+            for r in 0..rows {
+                for c in 0..cols {
+                    image[[r, c, 0]] = image_data[i * rows * cols + r * cols + c];
+                }
+            }
+            raw_images.push(image);
+        }
 
         if image_dataset_size != raw_images.len() as u32 {
             return Err(anyhow::anyhow!(
@@ -193,19 +191,19 @@ impl MnistDataLoader {
         Ok(())
     }
 
-    pub fn get_training_data(&self) -> (&Vec<Array2<f64>>, &Vec<f64>) {
+    pub fn get_training_data(&self) -> (&Vec<Array3<f64>>, &Vec<f64>) {
         (&self.x_train, &self.y_train)
     }
 
-    pub fn get_test_data(&self) -> (&Vec<Array2<f64>>, &Vec<f64>) {
+    pub fn get_test_data(&self) -> (&Vec<Array3<f64>>, &Vec<f64>) {
         (&self.x_test, &self.y_test)
     }
 }
 
-pub fn show_image(raw_image: &Array2<u8>) -> Result<()> {
+pub fn show_image(raw_image: &Array3<u8>) -> Result<()> {
     // Convert the raw grayscale image data into an RGB image.
     let rgb_image = image::ImageBuffer::from_fn(28, 28, |j, i| {
-        let pixel = raw_image[(i as usize, j as usize)];
+        let pixel = raw_image[(i as usize, j as usize, 0)];
         image::Rgb([pixel, pixel, pixel])
     });
 

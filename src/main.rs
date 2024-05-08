@@ -52,6 +52,54 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+fn cnn_train(sample_count: usize, model_file: &str) -> Result<()> {
+    let mnist = load_mnist()?;
+
+    let (x_train, y_train) = mnist.get_training_data();
+
+    if sample_count > x_train.len() {
+        println!(
+            "Sample count ({}) exceeds training data size ({}). Using all training data.",
+            sample_count,
+            x_train.len()
+        );
+    }
+    let sample_count = cmp::min(sample_count, x_train.len());
+
+    println!(
+        "{} {}Training convolutional neural network on {} samples...",
+        style("[2/3]").bold(),
+        TRAINING,
+        sample_count
+    );
+
+    let pb = ProgressBar::new(sample_count as u64);
+    for (x, y) in zip(x_train, y_train).take(sample_count) {
+        // Normalize input data.
+        let input = (x / 255.0 * 0.999) + 0.001;
+
+        // Create target vector.
+        let mut target = vec![0.001; 10];
+        target[*y as usize] = 0.999;
+
+        // Train the network.
+        // cnn.train(&input, &target);
+
+        pb.inc(1);
+    }
+
+    pb.finish_and_clear();
+
+    println!(
+        "{} {}Saving convolutional neural network...",
+        style("[3/3]").bold(),
+        SAVING
+    );
+    // cnn.save(model_file)?;
+
+    Ok(())
+}
+
 fn deep_nn_train(sample_count: usize, model_file: &str) -> Result<()> {
     let mnist = load_mnist()?;
 
@@ -185,7 +233,7 @@ fn simple_nn_train(sample_count: usize, model_file: &str) -> Result<()> {
         style("[2/3]").bold(),
         TRAINING
     );
-    let pb = ProgressBar::new(x_train.len() as u64);
+    let pb = ProgressBar::new(sample_count as u64);
 
     let target = vec![0.001; 10];
     for (x, y) in zip(x_train, y_train).take(sample_count) {
@@ -239,7 +287,7 @@ fn simple_nn_predict(sample_count: usize, model_file: &str) -> Result<()> {
         style("[3/3]").bold(),
         CRYSTAL_BALL
     );
-    let pb = ProgressBar::new(x_test.len() as u64);
+    let pb = ProgressBar::new(sample_count as u64);
     let mut correct = 0;
     for (x, y) in zip(x_test, y_test).take(sample_count) {
         let y_pred = simple_nn.predict(x.clone());

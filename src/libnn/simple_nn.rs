@@ -1,5 +1,5 @@
 use anyhow::Result;
-use ndarray::{Array2, CowArray, Dim};
+use ndarray::{Array2, Array3, CowArray, Dim};
 use ndarray_rand::{rand_distr::Uniform, RandomExt};
 use serde::{Deserialize, Serialize};
 
@@ -49,7 +49,7 @@ impl Network {
         (hidden_activations, final_outputs)
     }
 
-    pub fn predict(&self, input_data: Array2<f64>) -> usize {
+    pub fn predict(&self, input_data: Array3<f64>) -> usize {
         let input: SingleColumnArray = input_data.to_shape((input_data.len(), 1)).unwrap();
         let (_, final_outputs) = self.forward_pass(&input);
 
@@ -70,7 +70,7 @@ impl Network {
         }
     }
 
-    pub fn train(&mut self, input_data: Array2<f64>, target_data: Vec<f64>) {
+    pub fn train(&mut self, input_data: Array3<f64>, target_data: Vec<f64>) {
         let input: SingleColumnArray = input_data.to_shape((input_data.len(), 1)).unwrap();
         let (hidden_outputs, final_outputs) = self.forward_pass(&input);
 
